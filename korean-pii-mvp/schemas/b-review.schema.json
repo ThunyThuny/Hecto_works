@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/korean-pii-mvp/b-review.schema.json",
+  "title": "B annotation review declaration (one JSONL record)",
+  "description": "An approval is a supplied reviewer declaration, not independently verified evidence of human review.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["doc_id", "document_sha256", "review_status", "reviewer_id", "reviewed_at", "candidate_inventory_complete", "action_labels_complete"],
+  "properties": {
+    "doc_id": {"type": "string", "minLength": 1},
+    "document_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "review_status": {"enum": ["PENDING", "APPROVED"]},
+    "reviewer_id": {"type": ["string", "null"]},
+    "reviewed_at": {"type": ["string", "null"]},
+    "candidate_inventory_complete": {"type": "boolean"},
+    "action_labels_complete": {"type": "boolean"},
+    "notes": {"type": "string"}
+  },
+  "allOf": [{
+    "if": {"properties": {"review_status": {"const": "APPROVED"}}},
+    "then": {"properties": {
+      "reviewer_id": {"type": "string", "pattern": "^\\S(?:.*\\S)?$"},
+      "reviewed_at": {"type": "string", "format": "date-time"},
+      "candidate_inventory_complete": {"const": true},
+      "action_labels_complete": {"const": true}
+    }}
+  }]
+}

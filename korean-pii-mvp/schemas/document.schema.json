@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Korean PII MVP Document v1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["doc_id", "text", "mentions", "source_group", "annotation_scope"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "doc_id": {"type": "string", "minLength": 1},
+    "text": {"type": "string", "minLength": 1},
+    "source_group": {"type": "string", "minLength": 1},
+    "source": {"type": "string", "minLength": 1},
+    "split": {"type": ["string", "null"]},
+    "policy_id": {"type": ["string", "null"]},
+    "trusted_context": {"type": "object"},
+    "annotation_scope": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "mentions": {"type": "array", "items": {"$ref": "#/$defs/mention"}}
+  },
+  "$defs": {
+    "mention": {
+      "type": "object", "additionalProperties": false,
+      "required": ["mention_id", "start", "end", "text", "entity_type"],
+      "properties": {
+        "mention_id": {"type": "string", "minLength": 1},
+        "start": {"type": "integer", "minimum": 0},
+        "end": {"type": "integer", "minimum": 1},
+        "text": {"type": "string", "minLength": 1},
+        "entity_type": {"type": "string", "minLength": 1},
+        "action": {"enum": ["MASK", "KEEP", null]},
+        "reason_code": {"type": ["string", "null"]}
+      }
+    }
+  },
+  "$comment": "Python schema.py additionally enforces Unicode half-open substring equality, unique mention IDs, scope membership, and non-overlapping spans. JSON Schema alone cannot enforce these cross-field constraints."
+}

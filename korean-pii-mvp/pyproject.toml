@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "korean-pii-mvp"
+version = "0.1.0"
+description = "Offset-preserving Korean PII detection and contextual masking research MVP"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+train = ["torch>=2.2", "transformers>=4.51,<5", "safetensors>=0.4"]
+
+[project.scripts]
+kpii = "kpii_mvp.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

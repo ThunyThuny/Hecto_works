@@ -1,0 +1,13 @@
+{
+  "policy_id": "career_external_share_v1",
+  "candidate_types": ["NAME", "PHONE", "EMAIL", "ADDRESS", "RESIDENT_NUMBER", "WORKPLACE", "SCHOOL", "DEPARTMENT", "POSITION"],
+  "always_mask": ["NAME", "RESIDENT_NUMBER"],
+  "uncertain_action": "MASK",
+  "native_mapping_reference": {
+    "PS_NAME": "NAME", "QT_PHONE": "PHONE", "QT_MOBILE": "PHONE",
+    "TMI_EMAIL": "EMAIL", "LC_ADDRESS": "ADDRESS",
+    "QT_RESIDENT_NUMBER": "RESIDENT_NUMBER", "OG_WORKPLACE": "WORKPLACE",
+    "OGG_EDUCATION": "SCHOOL", "OG_DEPARTMENT": "DEPARTMENT", "CV_POSITION": "POSITION"
+  },
+  "note": "Design reference for later fully annotated domain data. Not a converter label-map file and not an implemented trained B. Native KDPII preprocessing retains all 33 types by default."
+}
