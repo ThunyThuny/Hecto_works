@@ -1,0 +1,146 @@
+# Saerok API — 슬림 런타임 의존성 (Step 3, 결정 3)
+#
+# requirements_full.txt(전체 env freeze, 211개)에서 앱이 실제로 import 하는 패키지의
+# 직접 + 전이 의존성만 추렸다. vllm / flashinfer-python / nvidia-cutlass-dsl / quack-kernels /
+# apache-tvm-ffi 및 LLM 서빙·에이전트·관측(observability) 스택은 앱이 import 하지 않아 제외.
+#
+# 버전은 모두 requirements_full.txt(동작 검증된 스냅샷)에 고정된 값과 동일.
+#
+# 별도 설치(여기서 제외):
+#   - torch / torchaudio / torchvision  → Dockerfile (a) cu128
+#   - llama-cpp-python==0.3.20          → Dockerfile (b) 백업 wheel (--no-index)
+#       ↳ llama-cpp 의 런타임 의존성(diskcache, Jinja2)은 --no-index 라 자동 해석되지 않으므로 아래에 명시 포함.
+#   - nvidia-*-cu12 (12.8)              → torch 설치가 cu128 인덱스에서 자동으로 끌어옴(중복 핀 회피).
+
+# ── 웹 프레임워크 / ASGI 서버 ──
+fastapi==0.135.2
+starlette==0.52.1
+uvicorn==0.42.0
+click==8.3.1
+h11==0.16.0
+uvloop==0.22.1
+httptools==0.7.1
+python-multipart==0.0.22
+anyio==4.13.0
+sniffio==1.3.1
+idna==3.11
+
+# ── HTTP 클라이언트 (콜백 dispatch) ──
+httpx==0.28.1
+httpcore==1.0.9
+certifi==2026.2.25
+
+# ── pydantic (요청/응답 모델) ──
+pydantic==2.12.5
+pydantic_core==2.41.5
+annotated-types==0.7.0
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+
+# ── STT: faster-whisper ──
+faster-whisper==1.1.0
+ctranslate2==4.7.1
+av==17.0.0
+onnxruntime==1.24.4
+tokenizers==0.22.2
+tqdm==4.67.3
+
+# ── 정렬(wav2vec2): transformers ──
+transformers==4.57.6
+safetensors==0.7.0
+regex==2026.3.32
+
+# ── HuggingFace 다운로드/캐시 ──
+huggingface_hub==0.36.2
+hf-xet==1.4.2
+filelock==3.25.2
+fsspec==2026.2.0
+requests==2.33.1
+urllib3==2.6.3
+charset-normalizer==3.4.6
+PyYAML==6.0.3
+
+# ── onnxruntime 의존성 ──
+protobuf==6.33.6
+flatbuffers==25.12.19
+sympy==1.14.0
+mpmath==1.3.0
+
+# ── CTC trellis JIT ──
+numba==0.61.2
+llvmlite==0.44.0
+
+# ── 수치 연산 ──
+numpy==2.2.6
+scipy==1.17.1
+
+# ── 오디오 I/O ──
+soundfile==0.13.1
+cffi==2.0.0
+pycparser==3.0
+
+# ── llama-cpp-python 런타임 의존성 (Dockerfile (b) 가 --no-index 라 여기서 보장) ──
+diskcache==5.6.3
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+
+# ── 화자분리: pyannote-audio 생태계 ──
+pyannote-audio==4.0.4
+pyannote-core==6.0.1
+pyannote-database==6.1.1
+pyannote-metrics==4.0.0
+pyannote-pipeline==4.0.0
+pyannoteai-sdk==0.4.0
+asteroid-filterbanks==0.4.0
+einops==0.8.2
+julius==0.2.7
+torch-audiomentations==0.12.0
+torch_pitch_shift==1.2.5
+primePy==1.3
+torch_c_dlpack_ext==0.1.5
+pytorch-metric-learning==2.9.0
+loguru==0.7.3
+
+# ── Lightning (pyannote 추론 프레임워크) ──
+lightning==2.6.1
+pytorch-lightning==2.6.1
+lightning-utilities==0.15.3
+torchmetrics==1.9.0
+
+# ── scikit-learn (pyannote pipeline/metrics) ──
+scikit-learn==1.8.0
+joblib==1.5.3
+threadpoolctl==3.6.0
+
+# ── pandas (pyannote-database/metrics) ──
+pandas==3.0.1
+python-dateutil==2.9.0.post0
+six==1.17.0
+
+# ── optuna (pyannote-pipeline 하이퍼파라미터) ──
+optuna==4.8.0
+alembic==1.18.4
+SQLAlchemy==2.0.48
+Mako==1.3.10
+greenlet==3.3.2
+colorlog==6.10.1
+
+# ── rich / 콘솔 출력 (pyannote, lightning) ──
+rich==14.3.3
+markdown-it-py==4.0.0
+mdurl==0.1.2
+Pygments==2.20.0
+
+# ── matplotlib (pyannote-metrics 플롯 모듈 top-level import) ──
+matplotlib==3.10.8
+contourpy==1.3.3
+cycler==0.12.1
+fonttools==4.62.1
+kiwisolver==1.5.0
+pillow==12.1.1
+pyparsing==3.3.2
+
+# ── 기타 소형 (pyannote 전이 의존성) ──
+sortedcontainers==2.4.0
+tabulate==0.10.0
+packaging

@@ -1,0 +1,97 @@
+# Saerok API (Gemma 4) — 본부 서버(L40S x6) 한 호스트에 컨테이너 2벌.
+#   instance0 → GPU 0,1,2  /  instance1 → GPU 3,4,5
+#
+# 모델/캐시는 이미지에 굽지 않고 볼륨 마운트. 비밀값(HF_TOKEN 등)은 같은 디렉터리의 .env 파일에서 주입.
+#   (.env 예시는 migration/env_template.txt 참조 — compose 에 평문 금지)
+#
+# GPU 매핑 설계 (결정 2 — device_ids 하드 격리):
+#   deploy.resources.reservations.devices.device_ids 로 각 컨테이너에 물리 GPU 3장만 노출한다.
+#   - instance0: device_ids ["0","1","2"] → 컨테이너가 물리 0/1/2 만 봄
+#   - instance1: device_ids ["3","4","5"] → 컨테이너가 물리 3/4/5 만 봄
+#   노출된 3장은 컨테이너 내부에서 각각 0/1/2 로 재매핑되므로, 코드의 cuda:0/1/2 하드코딩은 그대로 둔다.
+#   → CUDA_VISIBLE_DEVICES 는 불필요(내부 인덱스가 이미 0,1,2). 설정하지 않는다.
+
+services:
+  saerok-instance0:
+    build:
+      context: ..
+      dockerfile: migration/Dockerfile
+    image: saerok-api:gemma4
+    container_name: saerok-instance0
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      ROOT_PATH: "/api0"                            # nginx 프리픽스 — Swagger/openapi 프록시 정상화
+      HF_TOKEN: "${HF_TOKEN}"                       # .env 에서 주입
+      CALLBACK_ALLOWED_HOSTS: "${CALLBACK_ALLOWED_HOSTS:-}"
+      MAX_QUEUE: "${MAX_QUEUE:-4}"
+      PIPELINE_TIMEOUT: "${PIPELINE_TIMEOUT:-900}"
+      # ── 경로 (Step 1 에서 env 화한 키) ──
+      MODELS_DIR: "/data/models"
+      LLM_PATH: "/data/models/gemma-4-26B-A4B-it-UD-Q8_K_XL.gguf"
+      LOG_DIR: "/app/logs"
+      TEMP_DIR: "/tmp/saerok_api"                   # 컨테이너 내부 휘발 (호스트 마운트 안 함)
+      # ── 캐시 (pyannote/whisper/wav2vec2 = HF, silero VAD = torch.hub) ──
+      HF_HOME: "/data/cache/huggingface"
+      TORCH_HOME: "/data/cache/torch"
+      # GPU: device_ids 로 물리 0,1,2 만 노출 → 내부 0/1/2. CUDA_VISIBLE_DEVICES 불필요.
+    volumes:
+      - /data/saerok/models:/data/models:ro         # 모델 공유 (읽기 전용)
+      - /data/saerok/cache:/data/cache              # HF + torch hub 캐시 공유
+      - /data/saerok/logs/instance0:/app/logs       # 로그 컨테이너별 분리
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["0", "1", "2"]           # 물리 GPU 0,1,2 하드 격리
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 600s                            # 모델(~28GB) 로딩 시간 여유
+
+  saerok-instance1:
+    build:
+      context: ..
+      dockerfile: migration/Dockerfile
+    image: saerok-api:gemma4
+    container_name: saerok-instance1
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: "8081"
+      ROOT_PATH: "/api1"                            # nginx 프리픽스 — Swagger/openapi 프록시 정상화
+      HF_TOKEN: "${HF_TOKEN}"
+      CALLBACK_ALLOWED_HOSTS: "${CALLBACK_ALLOWED_HOSTS:-}"
+      MAX_QUEUE: "${MAX_QUEUE:-4}"
+      PIPELINE_TIMEOUT: "${PIPELINE_TIMEOUT:-900}"
+      MODELS_DIR: "/data/models"
+      LLM_PATH: "/data/models/gemma-4-26B-A4B-it-UD-Q8_K_XL.gguf"
+      LOG_DIR: "/app/logs"
+      TEMP_DIR: "/tmp/saerok_api"
+      HF_HOME: "/data/cache/huggingface"
+      TORCH_HOME: "/data/cache/torch"
+      # GPU: device_ids 로 물리 3,4,5 만 노출 → 내부 0/1/2 로 재매핑. CUDA_VISIBLE_DEVICES 불필요.
+    volumes:
+      - /data/saerok/models:/data/models:ro
+      - /data/saerok/cache:/data/cache
+      - /data/saerok/logs/instance1:/app/logs       # instance0 과 다른 호스트 경로
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["3", "4", "5"]           # 물리 GPU 3,4,5 하드 격리
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 600s
